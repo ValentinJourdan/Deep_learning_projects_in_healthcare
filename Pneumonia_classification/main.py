@@ -30,10 +30,10 @@ if __name__ == "__main__":
             "batch_size": 8
         }
     ],
-    "validation_datasets": [
+    "test_datasets": [
         {
-            "type": "x_ray_ValDataset",
-            "path": 'data/val/',
+            "type": "x_ray_TestDataset",
+            "path": 'data/test/',
             "shuffle": False,
             "args": {}
         }
