@@ -55,7 +55,7 @@ if __name__ == "__main__":
 
     model = Model()
     train_images, train_labels = load_dataset(opt["train_datasets"][0])
-    test_images, test_labels = load_dataset(opt["validation_datasets"][0])
+    test_images, test_labels = load_dataset(opt["test_datasets"][0])
     print('Datasets ready')
 
     model.train(train_images, train_labels)
