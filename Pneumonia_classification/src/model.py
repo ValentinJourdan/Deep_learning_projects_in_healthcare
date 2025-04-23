@@ -38,13 +38,13 @@ class Model(nn.Module):
         self.save_best_only = True 
         self.print_every = self.opt['print_every']
 
-    def train(self, model, train_images, train_labels):
-        self.network.train()    
+    def train(self, train_images, train_labels):
+           
         kf = KFold(n_splits=self.num_folds, shuffle=True, random_state=42)
 
         for fold, (train_index, val_index) in enumerate(kf.split(train_images)):
             print(f'Fold {fold + 1}/{self.num_folds}')
-            
+            self.network.train() 
             # Split data
             train_images_fold = train_images[train_index]
             train_labels_fold = train_labels[train_index]
@@ -63,7 +63,7 @@ class Model(nn.Module):
 
 
                     self.optimizer.zero_grad()
-                    outputs = model(inputs)
+                    outputs = self.network(inputs)
                     loss = self.criterion(outputs,labels)
                     loss.backward()
                     self.optimizer.step()
@@ -86,8 +86,9 @@ class Model(nn.Module):
                 for i in range(0, len(val_images_fold), self.batch_size):
                     inputs = val_images_fold[i:i+self.batch_size]
                     labels = val_labels_fold[i:i+self.batch_size]
-
-                    outputs = model(inputs)
+                    inputs = inputs.to(self.device)
+                    labels = labels.to(self.device)
+                    outputs = self.network(inputs)
                     loss = self.criterion(outputs, labels)
                     val_loss += loss.item()
 
