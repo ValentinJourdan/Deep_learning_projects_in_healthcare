@@ -18,18 +18,22 @@ class Model(nn.Module):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         if self.device == 'gpu':
             if torch.cuda.device_count() > 1:
-                print("Using", torch.cuda.device_count(), "GPUs")
+                print("Using", torch.cuda.device_count(), "GPUs", flush=True)
                 self.data_parallel()
-        self.network_opt = opt['networks'][0]
+
+        self.network_opt = opt['networks']
         net = build(Net, self.network_opt['args'])
-        if 'path' in self.network_opt.keys():
-            self.load_net(net, self.network_opt['path'])
-        self.network = net
-
-
-        self.criterion = nn.BCELoss()
-        self.optimizer = optim.AdamW(self.network.parameters(), lr=opt['lr'], momentum=opt['momentum'])
+        self.network = net.to(self.device)
+        self.optimizer = optim.AdamW(self.network.parameters(), lr=opt['lr'])
         self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=opt['num_iters'], eta_min=0.00001)
+        self.criterion = nn.BCELoss()
+
+        if 'path' in self.network_opt.keys():
+            model_path = self.network_opt['path']
+            if os.path.exists(model_path):
+                print(f"Loading model from {model_path}", flush=True)
+                self.load_model(self.network_opt['path'])
+
         self.num_folds = opt['num_folds']
         self.num_epochs = opt['num_iters']
         self.batch_size = opt['batch_size']
@@ -60,8 +64,8 @@ class Model(nn.Module):
                 for i in dataloader:
                     inputs = train_images_fold[i:i+self.batch_size]
                     labels = train_labels_fold[i:i+self.batch_size]
-
-
+                    inputs = inputs.to(self.device)
+                    labels = labels.to(self.device)
                     self.optimizer.zero_grad()
                     outputs = self.network(inputs)
                     loss = self.criterion(outputs,labels)
@@ -123,9 +127,11 @@ class Model(nn.Module):
         torch.save(net.state_dict(), os.path.join(self.opt['log_dir'], f'{self.network_opt['name']}_ft.pth'))
 
     def save_model(self):
+        if not os.path.exists(self.opt['log_dir']):
+            os.makedirs(self.opt['log_dir'])
         save_dict = {'iter': self.iter,
-                    'optimizer_BNN': self.optimizer.state_dict(),
-                    'scheduler_BNN': self.scheduler.state_dict(),
+                    'optimizer': self.optimizer.state_dict(),
+                    'scheduler': self.scheduler.state_dict(),
                     'net': self.network.state_dict()}
         torch.save(save_dict, os.path.join(self.opt['log_dir'], f'{self.network_opt['name']}.pth'))
         print(f"Model saved to {os.path.join(self.opt['log_dir'], f'{self.network_opt['name']}.pth')} \n")
